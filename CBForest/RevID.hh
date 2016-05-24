@@ -41,6 +41,8 @@ namespace cbforest {
         bool isClock() const                        {return (*this)[0] == 0;}
         unsigned generation() const;
         slice digest() const;
+        uint64_t getGenAndDigest(slice &digest) const;
+
         bool operator< (const revid&) const;
 
         explicit operator std::string() const;
@@ -50,7 +52,6 @@ namespace cbforest {
 
     private:
         slice skipFlag() const;
-        uint64_t getGenAndDigest(slice &digest) const;
         void _expandInto(slice &dst) const;
     };
 
@@ -58,16 +59,21 @@ namespace cbforest {
     class revidBuffer : public revid {
     public:
         revidBuffer()                               :revid(&_buffer, 0) {}
-        explicit revidBuffer(slice s)               :revid(&_buffer, 0) {parse(s);}
+        revidBuffer(revid rev)                      :revid(&_buffer, rev.size)
+        {memcpy(&_buffer, rev.buf, rev.size);}
+
+        explicit revidBuffer(slice s, bool allowClock =false)
+        :revid(&_buffer, 0)
+        {parse(s, allowClock);}
+
         revidBuffer(unsigned generation, slice digest, revidType);
         revidBuffer(const revidBuffer&);
         revidBuffer& operator= (const revidBuffer&);
 
         /** Parses a regular (uncompressed) revID and compresses it.
             Throws BadRevisionID if the revID isn't in the proper format.*/
-        void parse(slice, bool allowClock);
+        void parse(slice, bool allowClock =false);
 
-        void parse(slice s);
         void parseNew(slice s);
 
         bool tryParse(slice ascii, bool allowClock);
